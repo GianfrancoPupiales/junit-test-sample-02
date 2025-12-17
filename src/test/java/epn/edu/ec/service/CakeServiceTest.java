@@ -2,6 +2,7 @@ package epn.edu.ec.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -124,42 +125,40 @@ class CakeServiceTest {
     @Test
     public void updateCake_ShouldUpdateExistingCake() {
         // ARRANGE
-        Cake updatedCake = Cake.builder()
-                .id(1L)
-                .title("Updated Chocolate Cake")
-                .description("Updated delicious chocolate cake")
-                .build();
+        long cakeId = 1L;
+        Cake existingCake = Cake.builder().id(cakeId).title("Old Title").build();
+        UpdateCakeRequest updateRequest = new UpdateCakeRequest();
+        updateRequest.setTitle("Updated Chocolate Cake");
+        updateRequest.setDescription("Updated delicious chocolate cake");
 
-        when(cakeRepository.findById(1L)).thenReturn(Optional.of(cakeA));
-        when(cakeRepository.save(any(Cake.class))).thenReturn(updatedCake);
+        when(cakeRepository.findById(cakeId)).thenReturn(Optional.of(existingCake));
+        // Simular que el objeto ya actualizado
+        when(cakeRepository.save(any(Cake.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // ACT
-        UpdateCakeRequest updateCakeRequest = new UpdateCakeRequest();
-        updateCakeRequest.setTitle("Updated Chocolate Cake");
-        updateCakeRequest.setDescription("Updated delicious chocolate cake");
-
-        CakeResponse cakeResponse = cakeService.updateCake(1L, updateCakeRequest);
+        cakeService.updateCake(cakeId, updateRequest);
 
         // ASSERT
-        assertNotNull(cakeResponse);
-        assertEquals(1L, cakeResponse.getId());
-        assertEquals("Updated Chocolate Cake", cakeResponse.getTitle());
-        assertEquals("Updated delicious chocolate cake", cakeResponse.getDescription());
-        verify(cakeRepository).findById(1L);
-        verify(cakeRepository).save(any(Cake.class));
+        verify(cakeRepository).findById(cakeId);
+        verify(cakeRepository).save(argThat(cake ->
+                cake.getTitle().equals("Updated Chocolate Cake") &&
+                        cake.getDescription().equals("Updated delicious chocolate cake")
+        ));
     }
 
     @Test
     public void deleteCake_ShouldRemoveExistingCake() {
         // ARRANGE
-        when(cakeRepository.findById(1L)).thenReturn(Optional.of(cakeA));
+        long cakeId = 1L;
+        Cake cakeToDelete = Cake.builder().id(cakeId).title("To be deleted").build();
+        when(cakeRepository.findById(cakeId)).thenReturn(Optional.of(cakeToDelete));
 
         // ACT
-        cakeService.deleteCake(1L);
+        cakeService.deleteCake(cakeId);
 
         // ASSERT
-        verify(cakeRepository).findById(1L);
-        verify(cakeRepository).delete(cakeA);
+        verify(cakeRepository).findById(cakeId);
+        verify(cakeRepository).delete(cakeToDelete);
     }
 
     @Test
